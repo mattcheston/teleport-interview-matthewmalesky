@@ -9,6 +9,10 @@ Design: [DESIGN.md](DESIGN.md).
 
 AI Disclosure: [AI_DISCLOSURE.md](AI_DISCLOSURE.md)
 
+Live public nginx service: [nginx.mattcheston.com](https://nginx.mattcheston.com)
+
+Live public Teleport cluster: [teleport.mattcheston.com](https://teleport.mattcheston.com)
+
 ## Contents
 
 - [What you get](#what-you-get)
