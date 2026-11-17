@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: teleport-kube-agent
+  namespace: argocd
+  annotations:
+    # Joins the Teleport cluster using the token from teleport-access (wave 2)
+    # and publishes the apps.
+    argocd.argoproj.io/sync-wave: "3"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+    # The chart ships Helm post-delete hooks (the agent unregisters itself from
+    # Teleport when removed). Argo CD runs them as PostDelete hooks and adds
+    # these two finalizers to the Application itself; declaring them here keeps
+    # the root app from reporting this Application as OutOfSync forever.
+    - post-delete-finalizer.argocd.argoproj.io
+    - post-delete-finalizer.argocd.argoproj.io/cleanup
+spec:
+  project: default
+  source:
+    # Vendored wrapper chart — the upstream teleport-kube-agent chart (18.11.10)
+    # is stored in teleport-kube-agent/charts/. The Application name doubles as
+    # the Helm release name, which the chart uses for the ServiceAccount name
+    # that the join token allows (teleport-agent:teleport-kube-agent).
+    repoURL: https://github.com/mattcheston/teleport-interview-matthewmalesky.git
+    targetRevision: main
+    path: teleport-kube-agent
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: teleport-agent
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

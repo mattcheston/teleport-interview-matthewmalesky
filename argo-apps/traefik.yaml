@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+  namespace: argocd
+  annotations:
+    # After cert-manager (wave 0): this app also creates the Let's Encrypt
+    # ClusterIssuer, a cert-manager CR.
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Vendored wrapper chart — the upstream Traefik chart (42.4.0) is stored in
+    # traefik/charts/, so syncing needs no external chart repo.
+    repoURL: https://github.com/mattcheston/teleport-interview-matthewmalesky.git
+    targetRevision: main
+    path: traefik
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: traefik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # Traefik ships its own CRDs; server-side apply keeps them clear of the
+      # last-applied-configuration annotation size limit.
+      - ServerSideApply=true
+      # On a fresh cluster the ClusterIssuer CRD may not be registered yet when
+      # this app first syncs; don't fail the dry-run on unknown kinds, and retry.
+      - SkipDryRunOnMissingResource=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

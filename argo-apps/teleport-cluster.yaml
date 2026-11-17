@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: teleport-cluster
+  namespace: argocd
+  annotations:
+    # Teleport is the way into the apps this cluster publishes, so bring it up
+    # before them.
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Vendored wrapper chart — the upstream teleport-cluster chart (18.11.10) is
+    # stored in teleport-cluster/charts/, so syncing needs no external chart
+    # repo. The Application name doubles as the Helm release name, which the
+    # chart uses to name its resources (teleport-cluster-auth, -proxy,
+    # -operator).
+    repoURL: https://github.com/mattcheston/teleport-interview-matthewmalesky.git
+    targetRevision: main
+    path: teleport-cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: teleport
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # The operator's CRDs are large; server-side apply avoids the
+      # last-applied-configuration annotation size limit.
+      - ServerSideApply=true

@@ -1,0 +1,13 @@
+{{- range .Values.roles }}
+---
+apiVersion: resources.teleport.dev/v1
+kind: TeleportRoleV7
+metadata:
+  name: {{ .name }}
+spec:
+  allow:
+    app_labels:
+      {{- toYaml .appLabels | nindent 6 }}
+  options:
+    max_session_ttl: {{ $.Values.maxSessionTTL }}
+{{- end }}

@@ -1,0 +1,14 @@
+# Values for the vendored upstream cert-manager chart. Because cert-manager is
+# a subchart, its values are nested under the "cert-manager" key.
+
+# `global` is shared with the subchart. Move leader-election RBAC + lease out of
+# kube-system (the chart default) into the cert-manager namespace, so the app
+# touches nothing in kube-system.
+global:
+  leaderElection:
+    namespace: cert-manager
+
+cert-manager:
+  # Install cert-manager's own CRDs (Certificate, ClusterIssuer, etc.).
+  crds:
+    enabled: true

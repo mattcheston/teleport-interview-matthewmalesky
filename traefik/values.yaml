@@ -1,0 +1,64 @@
+# Values for the vendored upstream Traefik chart. Because Traefik is a
+# subchart, its values are nested under the "traefik" key. Everything else at
+# the top level is ours (templates/).
+#
+# Traefik is used as a plain Ingress controller: apps declare standard
+# `networking.k8s.io/v1` Ingress resources with `ingressClassName: traefik`.
+# Nothing in this repo uses Traefik's own CRDs, so the configuration here is
+# the same as it would be for any other Ingress controller.
+traefik:
+  deployment:
+    replicas: 1
+
+  service:
+    # One public layer 4 load balancer for all Ingress traffic, separate from
+    # Teleport's (which must own 443 on its own address).
+    spec:
+      type: LoadBalancer
+    annotations:
+      # DigitalOcean-only: pins the load balancer's name so the Service keeps
+      # the same LB (and IP) if it is ever recreated. Other providers ignore
+      # annotations they don't recognise, so this is harmless elsewhere.
+      service.beta.kubernetes.io/do-loadbalancer-name: teleport-demo-ingress
+
+  # Register `traefik` as the cluster's default IngressClass.
+  ingressClass:
+    enabled: true
+    isDefaultClass: true
+
+  providers:
+    kubernetesIngress:
+      enabled: true
+      # Copy the LoadBalancer's address into each Ingress's status, so
+      # `kubectl get ingress` shows where it is reachable.
+      publishedService:
+        enabled: true
+
+  ports:
+    web:
+      http:
+        redirections:
+          # Send all plain HTTP to HTTPS. Let's Encrypt's HTTP-01 validator and
+          # cert-manager's own reachability check both follow this redirect
+          # (and ignore the placeholder certificate they meet on the other side),
+          # so issuance still works with the redirect in place.
+          entryPoint:
+            to: websecure
+            scheme: https
+            permanent: true
+
+  # The dashboard is not exposed (the chart default); keep it off entirely.
+  api:
+    dashboard: false
+
+# Let's Encrypt ClusterIssuer (templates/clusterissuer.yaml). It lives with the
+# Ingress controller because its HTTP-01 solver answers challenges through it.
+# Any Ingress annotated `cert-manager.io/cluster-issuer: <name>` gets a
+# certificate.
+clusterIssuer:
+  name: letsencrypt
+  email: me@mattcheston.com
+  # Production. For experiments that may fail validation repeatedly, use the
+  # staging endpoint, which has generous rate limits but untrusted certificates:
+  # https://acme-staging-v02.api.letsencrypt.org/directory
+  server: https://acme-v02.api.letsencrypt.org/directory

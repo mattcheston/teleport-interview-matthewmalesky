@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: teleport-access
+  namespace: argocd
+  annotations:
+    # Teleport CRs: needs the operator CRDs from teleport-cluster (wave 1), and
+    # must exist before the agent (wave 3) tries to join with its token.
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mattcheston/teleport-interview-matthewmalesky.git
+    targetRevision: main
+    path: teleport-access
+  destination:
+    server: https://kubernetes.default.svc
+    # The operator only reconciles CRs in its own namespace.
+    namespace: teleport
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # On a fresh cluster the CRDs may not be registered yet when this app
+      # first syncs; don't fail the dry-run on unknown kinds, and retry.
+      - SkipDryRunOnMissingResource=true
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m

@@ -1,0 +1,13 @@
+apiVersion: resources.teleport.dev/v2
+kind: TeleportProvisionToken
+metadata:
+  name: {{ .Values.agentToken.name }}
+spec:
+  roles: [App]
+  join_method: kubernetes
+  kubernetes:
+    # Validate the agent's service account token against this cluster's API
+    # server (the Auth Service runs in the same cluster).
+    type: in_cluster
+    allow:
+      - service_account: {{ .Values.agentToken.serviceAccount | quote }}

@@ -1,0 +1,13 @@
+.DS_Store
+*.swp
+
+# Terraform state and providers (infra/terraform)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+
+# Cluster credentials written by scripts/kubeadm-up.sh
+infra/kubeconfig*
+infra/known_hosts

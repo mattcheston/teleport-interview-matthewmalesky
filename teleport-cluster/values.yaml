@@ -1,0 +1,43 @@
+# Values for the vendored upstream teleport-cluster chart (Teleport Auth +
+# Proxy). Because teleport-cluster is a subchart, its values are nested under
+# the "teleport-cluster" key.
+teleport-cluster:
+  # Community Edition: open-source image, no license secret.
+  enterprise: false
+
+  # Cluster name and public address. Cannot be changed after the first install.
+  clusterName: teleport.mattcheston.com
+
+  # Name under which this Kubernetes cluster shows up inside Teleport.
+  kubeClusterName: teleport-demo
+
+  # Serve every protocol over 443 (TLS routing), so the load balancer needs one
+  # port.
+  proxyListenerMode: multiplex
+
+  # Let's Encrypt certificates via Teleport's built-in ACME client (TLS-ALPN-01).
+  # It covers the cluster name and each registered app's subdomain, and it only
+  # works with a single proxy pod. The proxy keeps certificates in an emptyDir,
+  # so every proxy restart re-issues them: Let's Encrypt allows 5 identical
+  # certificates per week. Requires public DNS for clusterName (and
+  # *.clusterName) pointing at the proxy's LoadBalancer.
+  acme: true
+  acmeEmail: me@mattcheston.com
+
+  # Teleport Kubernetes Operator: reconciles Teleport resources (roles, join
+  # tokens, users...) declared as CRs in this namespace, so they can live in
+  # Git (see teleport-access/). The chart creates the operator's own join
+  # token and bot on Auth startup; its CRDs are installed with this chart.
+  operator:
+    enabled: true
+
+  # The proxy Service is a plain `type: LoadBalancer`, which any cloud
+  # controller manager (or MetalLB) can satisfy. Teleport needs a layer 4 load
+  # balancer that passes TLS through; an Ingress controller would break ACME
+  # and the multiplexed port.
+  annotations:
+    service:
+      # DigitalOcean-only: pins the load balancer's name so the Service keeps
+      # the same LB (and IP) if it is ever recreated. Other providers ignore
+      # annotations they don't recognise, so this is harmless elsewhere.
+      service.beta.kubernetes.io/do-loadbalancer-name: teleport-demo

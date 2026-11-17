@@ -1,0 +1,90 @@
+# RBAC for the people (or CI) who deploy the applications: members of the
+# `deployers` group, which the client certificates issued by
+# scripts/kubeconfig-deployer.sh carry in their subject (O=deployers).
+#
+# They can manage Argo CD Applications in the argocd namespace,
+# read Argo CD's initial admin password, and read (not change) everything else,
+# including the CRDs the demo uses. Nothing here grants exec, secrets in
+# general, or writes outside argocd: those need the kubeadm admin kubeconfig.
+#
+# Applied by scripts/kubeadm-up.sh with the admin kubeconfig, before the
+# deployer identity is used for the first time.
+---
+# Write access to Argo CD's own objects, limited to the argocd namespace by the
+# RoleBinding below.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: deployer-argocd
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications", "applicationsets"]
+    verbs: ["*"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["argocd-initial-admin-secret"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployers
+  namespace: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: deployer-argocd
+subjects:
+  - kind: Group
+    name: deployers
+    apiGroup: rbac.authorization.k8s.io
+---
+# Read-only everywhere: the built-in `view` role (pods, logs, services,
+# deployments, ingresses, ...; no secrets) plus the cluster-scoped and custom
+# resources it does not know about.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: deployer-view-extra
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "namespaces", "persistentvolumes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingressclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["argoproj.io", "cert-manager.io", "acme.cert-manager.io", "resources.teleport.dev", "traefik.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deployers-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: Group
+    name: deployers
+    apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deployers-view-extra
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: deployer-view-extra
+subjects:
+  - kind: Group
+    name: deployers
+    apiGroup: rbac.authorization.k8s.io

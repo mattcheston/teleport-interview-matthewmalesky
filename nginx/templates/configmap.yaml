@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-site
+  labels:
+    app: nginx
+# Static site served by nginx: the landing page and the resume it embeds.
+# Source files live in files/ so they can be edited as plain files.
+data:
+  index.html: |
+    {{- .Files.Get "files/index.html" | trim | nindent 4 }}
+binaryData:
+  resume.pdf: {{ .Files.Get "files/resume.pdf" | b64enc }}

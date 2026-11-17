@@ -1,0 +1,24 @@
+# nginx demo configuration.
+
+image:
+  repository: nginx
+  tag: 1.27-alpine
+  pullPolicy: IfNotPresent
+replicaCount: 2
+# Port nginx listens on inside the container.
+httpPort: 80
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 64Mi
+
+# Direct public access, without Teleport (templates/ingress.yaml). Needs an A
+# record for `host` pointing at the Ingress controller's load balancer; see the
+# README. The Teleport-published route works regardless of this setting.
+ingress:
+  enabled: true
+  className: traefik
+  host: nginx.mattcheston.com
+  clusterIssuer: letsencrypt

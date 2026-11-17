@@ -1,0 +1,37 @@
+# Values for the vendored upstream teleport-kube-agent chart: a Teleport
+# Application Service that dials out to the proxy and publishes in-cluster HTTP
+# apps. Because teleport-kube-agent is a subchart, its values are nested under
+# the "teleport-kube-agent" key.
+teleport-kube-agent:
+  roles: app
+  proxyAddr: teleport.mattcheston.com:443
+
+  # Join with the Kubernetes join method: the agent presents its own service
+  # account token, which the Auth Service validates in-cluster. The token
+  # resource it references is the TeleportProvisionToken declared in
+  # teleport-access/, which allows exactly this service account
+  # (teleport-agent:teleport-kube-agent). No shared secret lives in Git.
+  joinParams:
+    method: kubernetes
+    tokenName: kube-agent
+  # Required for the Kubernetes join method: the service account token is
+  # issued with the cluster name as its audience.
+  teleportClusterName: teleport.mattcheston.com
+
+  # Each app is published at https://<name>.teleport.mattcheston.com. Labels
+  # drive access: roles in teleport-access/ grant apps by label.
+  apps:
+    # The landing page (nginx/ chart).
+    - name: nginx
+      uri: http://nginx.nginx.svc.cluster.local
+      labels:
+        env: demo
+        audience: hiring
+    # The Argo CD UI that deploys everything in this repo. argocd-server
+    # serves its own self-signed certificate, so skip verification on the hop
+    # inside the cluster. Logging in still requires Argo CD credentials.
+    - name: argocd
+      uri: https://argocd-server.argocd.svc.cluster.local
+      insecure_skip_verify: true
+      labels:
+        env: demo

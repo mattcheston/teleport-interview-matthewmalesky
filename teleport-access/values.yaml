@@ -1,0 +1,32 @@
+# Teleport resources, declared as Kubernetes CRs and reconciled into Teleport by
+# the Teleport Kubernetes Operator (enabled in teleport-cluster/values.yaml).
+# The operator only watches its own namespace, so this chart deploys to the
+# teleport namespace alongside it.
+
+# Join token for the Application Service (teleport-kube-agent/). Uses the
+# Kubernetes join method: any pod running as this service account may join with
+# the App role. The token name is referenced by joinParams.tokenName in
+# teleport-kube-agent/values.yaml.
+agentToken:
+  name: kube-agent
+  serviceAccount: teleport-agent:teleport-kube-agent
+
+# Roles for people. Apps published by the agent carry labels (see
+# teleport-kube-agent/values.yaml); each role grants the apps whose labels
+# match, and nothing else: no servers, Kubernetes, databases or admin rights.
+#
+# Assign a role when inviting a user:
+#   kubectl -n teleport exec deploy/teleport-cluster-auth -- \
+#     tctl users add <username> --roles=hiring-viewer --ttl=48h
+roles:
+  # A guest from the hiring team: the landing page only.
+  - name: hiring-viewer
+    appLabels:
+      audience: [hiring]
+  # Preview / admin: every demo app, including the Argo CD UI.
+  - name: demo-viewer
+    appLabels:
+      env: [demo]
+
+# Applied to every role above.
+maxSessionTTL: 8h
