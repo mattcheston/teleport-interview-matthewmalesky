@@ -113,9 +113,12 @@ One control plane node and two workers each on Ubuntu 24.04.  `scripts/kubeadm-u
     Application: whoever can write a project decides what cluster-admin applies.
 
   The result: the deployer credential can point Argo CD at what is merged on
-  `main`, and at nothing else. Whoever can push to `main` deploys, so protect
-  the branch. Deployers can still delete Applications, which cascades to what
-  they manage: an availability risk, not an escalation.
+  `main`, and at nothing else. That makes the branch the trust boundary:
+  whoever can push to `main` deploys, as cluster-admin, so protect it on GitHub
+  with a required pull request and review, no force pushes or deletion, and a
+  limited set of pushers (see the README's "Make it yours" step). Deployers can
+  still delete Applications, which cascades to what they manage: an
+  availability risk, not an escalation.
 - `kubernetes-admin` from `kubeadm` (`infra/kubeconfig-admin`), cluster-admin
   through the `kubeadm:cluster-admins` group. Also the only credential that
   reads Argo CD's `admin` password: an Argo CD admin can edit projects and sync

@@ -102,6 +102,14 @@ Commit and push to `main` to update via GitOps.
 For a private repo, give Argo CD credentials once it is running
 (`argocd repo add <url> --username <user> --password <token>`).
 
+`main` is the trust boundary. The deployer credential can only point Argo CD at
+this repository's `main` branch, and Argo CD applies what it finds there as
+cluster-admin, so whoever can push to `main` can deploy anything. Protect the
+branch on GitHub (repository Settings, Branches, or a ruleset): require a pull
+request and a review before merging, block force pushes and deletion, and limit
+who may push. Write access to the repository without those rules is write
+access to the cluster.
+
 Cluster size, region and the SSH key name are variables in
 `infra/terraform/variables.tf`; override any of them with `TF_VAR_<name>`.
 
