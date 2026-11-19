@@ -10,7 +10,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default
+  project: apps
   source:
     # Vendored wrapper chart — the upstream teleport-cluster chart (18.11.12) is
     # stored in teleport-cluster/charts/, so syncing needs no external chart

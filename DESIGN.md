@@ -90,16 +90,36 @@ One control plane node and two workers each on Ubuntu 24.04.  `scripts/kubeadm-u
 
 ## Cluster access
 
-- **`deployer`** (`infra/kubeconfig`), for user access. The key never
+- **`deployer`** (`infra/kubeconfig`), for day-to-day use. The key never
   leaves the machine: `scripts/kubeconfig-deployer.sh` generates it locally using a CSR
-  approved with an admin credential. The Roles and RoleBindings (`infra/rbac/deployer.yaml`) binds the 
-  group to: full control of Argo CD Applications and ApplicationSets in the
-  `argocd` namespace; `get` on the initial admin password Secret; and
-  read-only everywhere else via the built-in `view` role plus nodes, CRDs,
-  storage and the demo's custom resource groups. No `exec`, no other Secrets,
-  no writes outside `argocd`.
+  approved with an admin credential. What the `deployers` group may do is set by
+  three things the same script applies with the admin kubeconfig:
+  - **RBAC** (`infra/rbac/deployer.yaml`): full control of Argo CD Applications in
+    the `argocd` namespace; read-only everywhere else via the built-in `view` role
+    plus nodes, CRDs, storage and the demo's custom resource groups. No `exec`,
+    no Secrets, no writes outside `argocd`.
+  - **Admission policy** (`infra/rbac/deployer-policy.yaml`, a
+    `ValidatingAdmissionPolicy`): an Application written by a deployer must have a
+    single source, this repository at `main`, with no inline Helm values,
+    Kustomize, plugin or Jsonnet overrides, and a manual sync may not substitute
+    another revision, source or local manifests. Argo CD's controller is
+    cluster-admin, and an Application is otherwise an arbitrary-manifest channel.
+  - **AppProjects** (`infra/argocd/projects.yaml`): `root` may only create
+    Applications in `argocd`; `apps` may deploy only to the five component
+    namespaces and only the cluster-scoped kinds the charts render (CRDs,
+    ClusterRoles and bindings, cert-manager's webhooks, Traefik's IngressClass,
+    the ClusterIssuer); `default`, which Argo CD creates wide open, is emptied.
+    Projects are applied by the admin rather than managed by the root
+    Application: whoever can write a project decides what cluster-admin applies.
+
+  The result: the deployer credential can point Argo CD at what is merged on
+  `main`, and at nothing else. Whoever can push to `main` deploys, so protect
+  the branch. Deployers can still delete Applications, which cascades to what
+  they manage: an availability risk, not an escalation.
 - `kubernetes-admin` from `kubeadm` (`infra/kubeconfig-admin`), cluster-admin
-  through the `kubeadm:cluster-admins` group.
+  through the `kubeadm:cluster-admins` group. Also the only credential that
+  reads Argo CD's `admin` password: an Argo CD admin can edit projects and sync
+  local manifests, so that password is an admin credential too.
 
 ## DNS as a second Terraform module
 

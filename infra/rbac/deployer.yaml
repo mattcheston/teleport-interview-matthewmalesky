@@ -2,28 +2,31 @@
 # `deployers` group, which the client certificates issued by
 # scripts/kubeconfig-deployer.sh carry in their subject (O=deployers).
 #
-# They can manage Argo CD Applications in the argocd namespace,
-# read Argo CD's initial admin password, and read (not change) everything else,
-# including the CRDs the demo uses. Nothing here grants exec, secrets in
-# general, or writes outside argocd: those need the kubeadm admin kubeconfig.
+# They can manage Argo CD Applications in the argocd namespace and read (not
+# change) everything else, including the CRDs the demo uses. Nothing here
+# grants exec, Secrets, or writes outside argocd: those need the kubeadm admin
+# kubeconfig. So does Argo CD's own admin password: an Argo CD admin can edit
+# projects and sync local manifests, which makes it an admin credential.
 #
-# Applied by scripts/kubeadm-up.sh with the admin kubeconfig, before the
-# deployer identity is used for the first time.
+# This is one third of the deployer's boundary. The AppProjects in
+# infra/argocd/projects.yaml bound where an Application may deploy and which
+# kinds; the admission policy in deployer-policy.yaml binds deployer-written
+# Applications to this repository at `main` with no inline overrides.
+#
+# Applied by scripts/kubeconfig-deployer.sh with the admin kubeconfig, before
+# the deployer identity is used for the first time.
 ---
-# Write access to Argo CD's own objects, limited to the argocd namespace by the
-# RoleBinding below.
+# Write access to Argo CD Applications, limited to the argocd namespace by the
+# RoleBinding below. Not ApplicationSets: unused here, and their controller
+# would create Applications as itself, outside the admission policy.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: deployer-argocd
 rules:
   - apiGroups: ["argoproj.io"]
-    resources: ["applications", "applicationsets"]
+    resources: ["applications"]
     verbs: ["*"]
-  - apiGroups: [""]
-    resources: ["secrets"]
-    resourceNames: ["argocd-initial-admin-secret"]
-    verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

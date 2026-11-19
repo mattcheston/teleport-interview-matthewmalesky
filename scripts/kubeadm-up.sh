@@ -207,8 +207,10 @@ kubectl -n "$ARGOCD_NS" rollout status statefulset/argocd-application-controller
 
 # --- 7. deployer identity ---------------------------------------------------
 # Day-to-day access is a scoped Kubernetes user with an X.509 client
-# certificate signed by the cluster, not kubeadm's cluster-admin. RBAC is in
-# infra/rbac/deployer.yaml; the admin kubeconfig stays for bootstrap and teardown.
+# certificate signed by the cluster, not kubeadm's cluster-admin. Its boundary
+# (RBAC and admission policy in infra/rbac/, Argo CD projects in infra/argocd/)
+# is applied by the same script, which is why this step follows the Argo CD
+# install. The admin kubeconfig stays for bootstrap and teardown.
 ADMIN_KUBECONFIG="$KUBECONFIG_ADMIN" OUT="$KUBECONFIG_OUT" "$REPO_ROOT/scripts/kubeconfig-deployer.sh"
 
 # --- 8. app-of-apps --------------------------------------------------------

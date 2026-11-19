@@ -16,7 +16,7 @@ metadata:
     - post-delete-finalizer.argocd.argoproj.io
     - post-delete-finalizer.argocd.argoproj.io/cleanup
 spec:
-  project: default
+  project: apps
   source:
     # Vendored wrapper chart — the upstream teleport-kube-agent chart (18.11.12)
     # is stored in teleport-kube-agent/charts/. The Application name doubles as

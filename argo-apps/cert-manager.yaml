@@ -10,7 +10,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default
+  project: apps
   source:
     # Vendored wrapper chart — the upstream cert-manager chart (v1.21.3) is
     # stored in cert-manager/charts/, so syncing needs no external chart repo.

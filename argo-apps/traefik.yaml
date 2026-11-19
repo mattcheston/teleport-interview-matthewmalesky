@@ -10,7 +10,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default
+  project: apps
   source:
     # Vendored wrapper chart — the upstream Traefik chart (42.4.1) is stored in
     # traefik/charts/, so syncing needs no external chart repo.

@@ -38,8 +38,8 @@ Live public Teleport cluster: [teleport.mattcheston.com](https://teleport.mattch
 
 ## "Universal" Deployment
 
-This requires a Kubernetes cluster with `type: LoadBalancer` Services that get
-public addresses, a default StorageClass, and DNS you control. First do
+This requires a Kubernetes cluster (1.30 or newer) with `type: LoadBalancer`
+Services that get public addresses, a default StorageClass, and DNS you control. First do
 [step 1, Make it yours](#1-make-it-yours), from the DigitalOcean steps below;
 the rest of those steps do not apply. Then continue here: install Argo CD with
 Helm, create the `deployer` user with a cluster-admin or similar kubeconfig on your
@@ -60,8 +60,11 @@ kubectl apply -f bootstrap/
 kubectl -n argocd get applications -w
 ```
 
-The script applies `infra/rbac/deployer.yaml`, has the cluster sign a client
-certificate through a CSR using the `ADMIN_KUBECONFIG` credential, and writes
+The script applies the deployer's RBAC (`infra/rbac/deployer.yaml`), the
+admission policy that pins deployer-written Applications to this repository at
+`main` (`infra/rbac/deployer-policy.yaml`) and the Argo CD AppProjects
+(`infra/argocd/projects.yaml`), has the cluster sign a client certificate
+through a CSR using the `ADMIN_KUBECONFIG` credential, and writes
 `infra/kubeconfig` for the deployer credential.
 
 Then set up DNS as described in [step 3](#3-dns), by hand or by refactoring `infra/dns/`
@@ -84,14 +87,14 @@ the backups):
 ```sh
 REPO=https://github.com/<you>/<repo>.git DOMAIN=example.com EMAIL=you@example.com
 grep -rl mattcheston --include='*.yaml' --include='*.tf' --include='*.html' \
-  bootstrap argo-apps teleport-cluster teleport-kube-agent nginx traefik infra/dns \
+  bootstrap argo-apps teleport-cluster teleport-kube-agent nginx traefik infra/dns infra/rbac infra/argocd \
   | xargs sed -i.bak -e "s#https://github.com/mattcheston/teleport-interview-matthewmalesky.git#$REPO#g" \
                      -e "s#me@mattcheston.com#$EMAIL#g" -e "s#mattcheston.com#$DOMAIN#g"
 find . -name '*.bak' -not -path './.git/*' -delete
 ```
 
-This replaces the Argo CD `repoURL`s, the Teleport cluster name
-and proxy address, the Ingress host, the DNS zone, the Let's Encrypt contact
+This replaces the Argo CD `repoURL`s (Applications, AppProjects and the
+admission policy), the Teleport cluster name and proxy address, the Ingress host, the DNS zone, the Let's Encrypt contact
 and the hostnames on the landing page; `git diff` shows the result. Replace
 `nginx/files/index.html` and `nginx/files/resume.pdf` with your own content.
 Commit and push to `main` to update via GitOps.
@@ -149,7 +152,8 @@ kubectl -n teleport exec deploy/teleport-cluster-auth -- \
 ```
 
 Each prints a one-time invite link; sign-in is password plus passkey. Argo CD's
-own `admin` password (either kubeconfig):
+own `admin` password needs the admin kubeconfig too: an Argo CD admin can edit
+projects, so the deployer cannot read it.
 
 ```sh
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
@@ -177,7 +181,8 @@ nginx/                landing page chart + Ingress (ours)        wave 2
 teleport-kube-agent/  wrapper chart: publishes nginx + Argo CD   wave 3
 infra/terraform/      DigitalOcean VPC, droplets, firewall, cloud-init
 infra/dns/            DNSimple records from the cluster's LB addresses
-infra/rbac/           RBAC for the deployer user (Argo apps + read-only)
+infra/rbac/           RBAC + admission policy for the deployer group
+infra/argocd/         Argo CD AppProjects: where each Application may deploy (admin-applied)
 scripts/              kubeadm-up.sh, kubeadm-down.sh, kubeconfig-deployer.sh, dns-apply.sh
 ```
 
@@ -192,6 +197,10 @@ Git is the source of truth.
 - **Add an app.** New chart directory, copy `argo-apps/nginx.yaml` and adjust
   name, path, namespace and wave, and to publish it through Teleport add it to
   `apps` in `teleport-kube-agent/values.yaml` with a label a role matches.
+  Add its namespace, and any cluster-scoped kind its chart renders, to the
+  `apps` project in `infra/argocd/projects.yaml` and apply that with the admin
+  kubeconfig (`kubectl apply --server-side -f infra/argocd/projects.yaml`);
+  until then Argo CD reports the destination as not permitted.
 - **Bump a chart.** Edit the version in the wrapper's `Chart.yaml`, run
   `helm dependency update ./<wrapper>`, commit `Chart.yaml`, `Chart.lock` and
   `charts/`.

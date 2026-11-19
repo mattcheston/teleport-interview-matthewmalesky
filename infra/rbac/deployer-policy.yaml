@@ -1,0 +1,72 @@
+# Admission policy for the `deployers` group: an Application they write may only
+# render this repository at `main`, exactly as committed.
+#
+# RBAC (deployer.yaml) says deployers may write Applications; the AppProjects
+# (infra/argocd/projects.yaml) say where those may deploy and which kinds. This
+# policy closes what neither can: an Application also carries its own content.
+# Inline Helm values, Kustomize patches, config-management plugins, a manual
+# sync with local manifests (`argocd app sync --local`) or with another
+# revision, or simply another branch, would all let a deployer have Argo CD,
+# which is cluster-admin, apply manifests nobody reviewed. The apps project has
+# to allow ClusterRoleBinding (cert-manager, Traefik and both Teleport charts
+# create them), so that would be cluster-admin for the deployer.
+#
+# With this policy the deployer kubeconfig can only point Argo CD at what is on
+# `main`. Whoever can push to `main` deploys: protect the branch. Argo CD's own
+# controller and API server are not in the group and are unaffected, so
+# automated syncs and the Argo CD UI work as before.
+#
+# Keyed on the group name: GROUP= in scripts/kubeconfig-deployer.sh other than
+# `deployers` gets neither the RBAC nor this policy. The repository URL is
+# rewritten by the "Make it yours" step in the README. Kubernetes 1.30 or newer.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: deployers-argocd-applications
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["argoproj.io"]
+        apiVersions: ["*"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["applications"]
+  matchConditions:
+    - name: deployers-group
+      expression: "'deployers' in request.userInfo.groups"
+  validations:
+    - expression: "has(object.spec.project) && object.spec.project in ['root', 'apps']"
+      message: "deployers: spec.project must be root or apps"
+    - expression: "has(object.spec.source) && !has(object.spec.sources) && !has(object.spec.sourceHydrator)"
+      message: "deployers: exactly one spec.source; spec.sources and spec.sourceHydrator are not allowed"
+    - expression: "has(object.spec.source) && object.spec.source.repoURL == 'https://github.com/mattcheston/teleport-interview-matthewmalesky.git'"
+      message: "deployers: spec.source.repoURL must be this repository"
+    - expression: "has(object.spec.source) && has(object.spec.source.targetRevision) && object.spec.source.targetRevision == 'main'"
+      message: "deployers: spec.source.targetRevision must be main"
+    - expression: >-
+        has(object.spec.source)
+        && !has(object.spec.source.chart) && !has(object.spec.source.helm)
+        && !has(object.spec.source.kustomize) && !has(object.spec.source.plugin)
+        && (!has(object.spec.source.directory) || !has(object.spec.source.directory.jsonnet))
+      message: "deployers: no inline rendering overrides (chart, helm, kustomize, plugin, directory.jsonnet); values are what the repository commits"
+    # A manual sync (`operation`) may not change what is synced. While an
+    # automated sync runs, the controller records the resolved commit in
+    # operation.sync.revision; a deployer's `kubectl apply` merges that back in
+    # unchanged, which the oldObject clause allows.
+    - expression: >-
+        !has(object.operation)
+        || (request.operation == 'UPDATE' && has(oldObject.operation) && object.operation == oldObject.operation)
+        || !has(object.operation.sync)
+        || (!has(object.operation.sync.manifests) && !has(object.operation.sync.source)
+            && !has(object.operation.sync.sources) && !has(object.operation.sync.revisions)
+            && (!has(object.operation.sync.revision) || object.operation.sync.revision == 'main'))
+      message: "deployers: a manual sync may not override the source, revision or manifests"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: deployers-argocd-applications
+spec:
+  policyName: deployers-argocd-applications
+  validationActions: ["Deny"]
