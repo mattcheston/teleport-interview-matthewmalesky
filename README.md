@@ -39,9 +39,9 @@ Live public Teleport cluster: [teleport.mattcheston.com](https://teleport.mattch
 ## "Universal" Deployment
 
 This requires a Kubernetes cluster (1.30 or newer) with `type: LoadBalancer`
-Services that get public addresses, a default StorageClass, and DNS you control. First do
-[step 1, Make it yours](#1-make-it-yours), from the DigitalOcean steps below;
-the rest of those steps do not apply. Then continue here: install Argo CD with
+Services that get public addresses, a default StorageClass, and DNS you
+control. First do [step 1, Make it yours](#1-make-it-yours), from the
+DigitalOcean steps below; the rest of those steps do not apply. Then continue here: install Argo CD with
 Helm, create the `deployer` user with a cluster-admin or similar kubeconfig on your
 cluster, and deploy the root Application as the deployer:
 
@@ -94,8 +94,9 @@ find . -name '*.bak' -not -path './.git/*' -delete
 ```
 
 This replaces the Argo CD `repoURL`s (Applications, AppProjects and the
-admission policy), the Teleport cluster name and proxy address, the Ingress host, the DNS zone, the Let's Encrypt contact
-and the hostnames on the landing page; `git diff` shows the result. Replace
+admission policy), the Teleport cluster name and proxy address, the Ingress
+host, the DNS zone, the Let's Encrypt contact and the hostnames on the landing
+page; `git diff` shows the result. Replace
 `nginx/files/index.html` and `nginx/files/resume.pdf` with your own content.
 Commit and push to `main` to update via GitOps.
 For a private repo, give Argo CD credentials once it is running
