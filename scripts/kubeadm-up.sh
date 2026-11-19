@@ -36,11 +36,11 @@ KNOWN_HOSTS="$REPO_ROOT/infra/known_hosts"
 
 CLUSTER_NAME="${CLUSTER_NAME:-teleport-demo}"
 POD_CIDR="${POD_CIDR:-10.244.0.0/16}"
-CILIUM_VERSION="${CILIUM_VERSION:-1.20.4}"
+CILIUM_VERSION="${CILIUM_VERSION:-1.20.5}"
 DO_CCM_VERSION="${DO_CCM_VERSION:-v0.1.73}"
 DO_CSI_VERSION="${DO_CSI_VERSION:-v4.22.0}"
-# Git ref in argoproj/argo-cd to install from (a tag like v3.6.1, or "stable").
-ARGOCD_VERSION="${ARGOCD_VERSION:-v3.6.1}"
+# Git ref in argoproj/argo-cd to install from (a tag like v3.6.2, or "stable").
+ARGOCD_VERSION="${ARGOCD_VERSION:-v3.6.2}"
 ARGOCD_NS="${ARGOCD_NS:-argocd}"
 
 err() { printf 'error: %s\n' "$*" >&2; exit 1; }

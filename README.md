@@ -49,7 +49,7 @@ cluster, and deploy the root Application as the deployer:
 # Install Argo CD if not already installed
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
-helm upgrade --install argocd argo/argo-cd --namespace argocd --create-namespace --version 10.18.0
+helm upgrade --install argocd argo/argo-cd --namespace argocd --create-namespace --version 10.18.1
 kubectl -n argocd rollout status deploy/argocd-server --timeout=300s
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo   # UI password for admin
 
@@ -198,7 +198,7 @@ Git is the source of truth.
 
 ## Versions
 
-Kubernetes 1.37 (kubeadm), Cilium 1.20.4, DigitalOcean CCM v0.1.73 and CSI
-v4.22.0, Argo CD v3.6.1 (`scripts/kubeadm-up.sh`; Helm chart 10.18.0 in the README); cert-manager v1.21.3,
-Teleport charts 18.11.10, Traefik chart 42.4.0 (each wrapper's `Chart.yaml`);
+Kubernetes 1.37 (kubeadm), Cilium 1.20.5, DigitalOcean CCM v0.1.73 and CSI
+v4.22.0, Argo CD v3.6.2 (`scripts/kubeadm-up.sh`; Helm chart 10.18.1 in the README); cert-manager v1.21.3,
+Teleport charts 18.11.12, Traefik chart 42.4.1 (each wrapper's `Chart.yaml`);
 Terraform providers pinned in each `.terraform.lock.hcl`.

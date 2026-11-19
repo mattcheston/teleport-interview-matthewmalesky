@@ -12,7 +12,7 @@ metadata:
 spec:
   project: default
   source:
-    # Vendored wrapper chart — the upstream Traefik chart (42.4.0) is stored in
+    # Vendored wrapper chart — the upstream Traefik chart (42.4.1) is stored in
     # traefik/charts/, so syncing needs no external chart repo.
     repoURL: https://github.com/mattcheston/teleport-interview-matthewmalesky.git
     targetRevision: main
